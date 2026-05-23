@@ -52,14 +52,20 @@ final class InventoryReporter
 
         $active = (array) get_option('active_plugins', []);
         $activeMap = array_flip(array_map('strval', $active));
+        $pluginUpdates = $this->pluginUpdates();
+        $themeUpdates = $this->themeUpdates();
+        $coreUpdate = $this->coreUpdateVersion();
 
         $items = [];
 
         foreach (get_plugins() as $pluginFile => $data) {
+            $availableVersion = $pluginUpdates[$pluginFile] ?? '';
             $items[] = [
                 'name'    => (string) ($data['Name'] ?? $pluginFile),
                 'slug'    => dirname((string) $pluginFile),
                 'version' => (string) ($data['Version'] ?? ''),
+                'update_available' => $availableVersion !== '',
+                'available_version' => $availableVersion,
                 'type'    => 'plugin',
                 'active'  => isset($activeMap[$pluginFile]),
             ];
@@ -71,6 +77,8 @@ final class InventoryReporter
                 'name'    => 'WordPress Core',
                 'slug'    => 'wordpress',
                 'version' => (string) $wp_version,
+                'update_available' => $coreUpdate !== '',
+                'available_version' => $coreUpdate,
                 'type'    => 'core',
                 'active'  => true,
             ];
@@ -78,15 +86,81 @@ final class InventoryReporter
 
         $current = wp_get_theme();
         if ($current && $current->exists()) {
+            $stylesheet = (string) $current->get_stylesheet();
+            $availableVersion = $themeUpdates[$stylesheet] ?? '';
             $items[] = [
                 'name'    => (string) $current->get('Name'),
-                'slug'    => (string) $current->get_stylesheet(),
+                'slug'    => $stylesheet,
                 'version' => (string) $current->get('Version'),
+                'update_available' => $availableVersion !== '',
+                'available_version' => $availableVersion,
                 'type'    => 'theme',
                 'active'  => true,
             ];
         }
 
         return $items;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function pluginUpdates(): array
+    {
+        if (! function_exists('get_plugin_updates')) {
+            require_once ABSPATH . 'wp-admin/includes/update.php';
+        }
+
+        wp_update_plugins();
+
+        $updates = [];
+        foreach (get_plugin_updates() as $pluginFile => $update) {
+            $version = (string) ($update->update->new_version ?? '');
+            if ($version !== '') {
+                $updates[(string) $pluginFile] = $version;
+            }
+        }
+
+        return $updates;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function themeUpdates(): array
+    {
+        if (! function_exists('get_theme_updates')) {
+            require_once ABSPATH . 'wp-admin/includes/update.php';
+        }
+
+        wp_update_themes();
+
+        $updates = [];
+        foreach (get_theme_updates() as $stylesheet => $update) {
+            $version = (string) ($update->update['new_version'] ?? '');
+            if ($version !== '') {
+                $updates[(string) $stylesheet] = $version;
+            }
+        }
+
+        return $updates;
+    }
+
+    private function coreUpdateVersion(): string
+    {
+        if (! function_exists('get_core_updates')) {
+            require_once ABSPATH . 'wp-admin/includes/update.php';
+        }
+
+        wp_version_check();
+
+        foreach (get_core_updates() as $update) {
+            $version = (string) ($update->current ?? '');
+            if ($version !== '' && in_array($update->response ?? '', ['upgrade', 'latest'], true)) {
+                return $version;
+            }
+        }
+
+        return '';
     }
 }
