@@ -23,6 +23,7 @@ defined('ABSPATH') || exit;
     <?php endif; ?>
 
     <p>Paste the webhook URL and the Monitor's <code>Update Webhook Secret</code> from the Uptime Monitor app.</p>
+    <p class="description">GitHub release updates are enabled for this plugin.</p>
 
     <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
         <input type="hidden" name="action" value="<?php echo esc_attr($saveAction); ?>" />
