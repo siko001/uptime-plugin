@@ -67,24 +67,6 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Create automatic tag
-        if: startsWith(github.ref, 'refs/heads/')
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          TAG="${{ steps.version.outputs.tag }}"
-
-          if git rev-parse "$TAG" >/dev/null 2>&1; then
-            echo "Tag $TAG already exists." >&2
-            exit 1
-          fi
-
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag "$TAG" "${GITHUB_SHA}"
-          git push "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$TAG"
-
       - name: Build plugin ZIP
         shell: bash
         run: |
@@ -127,6 +109,11 @@ jobs:
 
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "dist/${ZIP_NAME}" --clobber
+          elif [[ "${GITHUB_REF}" == refs/heads/* ]]; then
+            gh release create "$TAG" "dist/${ZIP_NAME}" \
+              --target "${GITHUB_SHA}" \
+              --title "Panza Uptime Monitor v${VERSION}" \
+              --notes "Release v${VERSION}"
           else
             gh release create "$TAG" "dist/${ZIP_NAME}" \
               --title "Panza Uptime Monitor v${VERSION}" \

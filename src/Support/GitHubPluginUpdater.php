@@ -99,26 +99,27 @@ final class GitHubPluginUpdater
         ]);
 
         if (is_wp_error($response) || (int) wp_remote_retrieve_response_code($response) !== 200) {
-            set_site_transient(self::CACHE_KEY, null, HOUR_IN_SECONDS);
+            set_site_transient(self::CACHE_KEY, null, 5 * MINUTE_IN_SECONDS);
 
             return null;
         }
 
         $data = json_decode((string) wp_remote_retrieve_body($response), true);
         if (! is_array($data) || empty($data['tag_name'])) {
-            set_site_transient(self::CACHE_KEY, null, HOUR_IN_SECONDS);
+            set_site_transient(self::CACHE_KEY, null, 5 * MINUTE_IN_SECONDS);
 
             return null;
         }
 
+        $package = $this->assetDownloadUrl($data);
         $release = [
             'version' => ltrim((string) $data['tag_name'], 'vV'),
-            'package' => $this->assetDownloadUrl($data),
+            'package' => $package,
             'notes' => (string) ($data['body'] ?? ''),
             'tested' => (string) ($data['tested'] ?? ''),
         ];
 
-        set_site_transient(self::CACHE_KEY, $release, 6 * HOUR_IN_SECONDS);
+        set_site_transient(self::CACHE_KEY, $release, $package === '' ? 5 * MINUTE_IN_SECONDS : 6 * HOUR_IN_SECONDS);
 
         return $release;
     }
