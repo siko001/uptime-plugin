@@ -92,7 +92,12 @@ jobs:
             $file = $argv[1];
             $version = $argv[2];
             $contents = file_get_contents($file);
-            $contents = preg_replace("/^([ \t*]*Version:[ \t]*).+$/mi", "$1".$version, $contents, 1);
+            $contents = preg_replace_callback(
+                "/^([ \t*]*Version:[ \t]*).+$/mi",
+                static fn ($matches) => $matches[1].$version,
+                $contents,
+                1
+            );
             file_put_contents($file, $contents);
           ' "$BUILD_DIR/${PLUGIN_FILE}" "$VERSION"
 
