@@ -127,7 +127,7 @@ Before publishing a release:
 Example:
 
 ```bash
-git add panza-uptime-monitor .github/workflows/release-panza-plugin.yml
+git add .
 git commit -m "Update Panza Uptime Monitor plugin"
 git push origin main
 ```

@@ -6,8 +6,7 @@ on:
       - main
       - master
     paths:
-      - 'panza-uptime-monitor/**'
-      - '.github/workflows/release-panza-plugin.yml'
+      - '**'
     tags:
       - 'v*'
   workflow_dispatch:
@@ -70,8 +69,6 @@ jobs:
 
       - name: Create automatic tag
         if: startsWith(github.ref, 'refs/heads/')
-        env:
-          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           TAG="${{ steps.version.outputs.tag }}"
@@ -97,9 +94,11 @@ jobs:
           rm -rf build dist
           mkdir -p "$BUILD_DIR" dist
 
-          rsync -a "${PLUGIN_SLUG}/" "$BUILD_DIR/" \
+          rsync -a ./ "$BUILD_DIR/" \
             --exclude='.git' \
             --exclude='.github' \
+            --exclude='build' \
+            --exclude='dist' \
             --exclude='node_modules' \
             --exclude='vendor' \
             --exclude='tests' \
@@ -131,3 +130,4 @@ jobs:
               --title "Panza Uptime Monitor v${VERSION}" \
               --notes "Release v${VERSION}"
           fi
+
