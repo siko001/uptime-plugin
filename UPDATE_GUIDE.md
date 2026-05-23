@@ -20,7 +20,13 @@ panza-uptime-monitor.zip
    `panza-uptime-monitor`
 3. Keep the main plugin file stable:
    `panza-uptime-monitor.php`
-4. Create a Git tag for the version:
+4. Push to `main`.
+
+   The GitHub Actions workflow automatically creates the next patch tag and release.
+
+   Example: if the latest tag is `v1.0.1`, the next plugin change pushed to `main` becomes `v1.0.2`.
+
+Manual tags still work if you want to choose the exact version yourself:
 
    ```bash
    git tag v1.0.1
@@ -113,8 +119,8 @@ The release workflow stamps the `Version:` header inside the ZIP from the tag na
 Before publishing a release:
 
 1. Commit the plugin changes.
-2. Create and push the matching Git tag.
-3. Let `.github/workflows/release-panza-plugin.yml` build and upload the ZIP.
+2. Push to `main`.
+3. Let `.github/workflows/release-panza-plugin.yml` create the next patch tag, build the ZIP, and upload it.
 4. Test from a WordPress site by going to:
    `Dashboard -> Updates`
 
@@ -123,9 +129,14 @@ Example:
 ```bash
 git add panza-uptime-monitor .github/workflows/release-panza-plugin.yml
 git commit -m "Update Panza Uptime Monitor plugin"
-git tag v1.0.1
 git push origin main
-git push origin v1.0.1
+```
+
+For a major/minor release, create a tag manually or run the workflow manually with the exact version:
+
+```bash
+git tag v1.1.0
+git push origin v1.1.0
 ```
 
 ## Important Note
