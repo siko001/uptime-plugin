@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name:       Panza Uptime Monitor
- * Description:       Reports WordPress install / update / delete events to the Panza Uptime Monitor app via signed webhook.
+ * Description:       Manage WordPress plugin, theme, and core updates to the Panza Uptime Monitor app via signed webhook.
  * Version:           1.0.0
  * Requires PHP:      8.1
  * Author:            Panza
