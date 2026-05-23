@@ -217,8 +217,12 @@ final class CommandEndpoint
     private function createUser(array $payload): array
     {
         $data = $this->userData($payload);
-        if (empty($data['user_login']) || empty($data['user_email']) || empty($data['user_pass'])) {
-            return ['ok' => false, 'message' => 'Username, email, and password are required to create a user.'];
+        if (empty($data['user_login']) || empty($data['user_email'])) {
+            return ['ok' => false, 'message' => 'Username and email are required to create a user.'];
+        }
+
+        if (empty($data['user_pass'])) {
+            $data['user_pass'] = wp_generate_password(24, true, true);
         }
 
         $userId = wp_insert_user($data);
@@ -227,6 +231,7 @@ final class CommandEndpoint
         }
 
         $this->setUserRoles((int) $userId, $payload);
+        $this->sendNewUserNotifications((int) $userId, $payload);
 
         return ['ok' => true, 'message' => 'WordPress user created.', 'user_id' => (int) $userId];
     }
@@ -309,6 +314,29 @@ final class CommandEndpoint
 
         foreach ($roles as $role) {
             $user->add_role($role);
+        }
+    }
+
+    private function sendNewUserNotifications(int $userId, array $payload): void
+    {
+        $notifyUser = ! empty($payload['send_user_notification']);
+        $notifyAdmin = ! empty($payload['send_admin_notification']);
+
+        if ($notifyUser || $notifyAdmin) {
+            $notify = match (true) {
+                $notifyUser && $notifyAdmin => 'both',
+                $notifyAdmin => 'admin',
+                default => 'user',
+            };
+
+            wp_new_user_notification($userId, null, $notify);
+        }
+
+        if (! empty($payload['send_password_reset'])) {
+            $user = get_user_by('id', $userId);
+            if ($user instanceof \WP_User) {
+                retrieve_password($user->user_login);
+            }
         }
     }
 

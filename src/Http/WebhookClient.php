@@ -63,13 +63,14 @@ final class WebhookClient
 
     /**
      * @param  list<array<string, mixed>>  $users
+     * @param  list<array<string, mixed>>  $roles
      */
-    public function sendUsers(array $users): void
+    public function sendUsers(array $users, array $roles = []): void
     {
         $url = Options::getUrl();
         $secret = Options::getSecret();
 
-        if ($url === '' || $secret === '' || $users === []) {
+        if ($url === '' || $secret === '' || ($users === [] && $roles === [])) {
             return;
         }
 
@@ -79,7 +80,7 @@ final class WebhookClient
             $usersUrl = rtrim($url, '/').'/../wp-users';
         }
 
-        $body = $this->buildBody(['users' => $users]);
+        $body = $this->buildBody(['users' => $users, 'roles' => $roles]);
         $headers = $this->signedHeaders($body, $secret);
 
         wp_remote_post($usersUrl, [

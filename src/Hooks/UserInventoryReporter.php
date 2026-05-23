@@ -36,7 +36,7 @@ final class UserInventoryReporter
 
     public function push(): void
     {
-        $this->client->sendUsers($this->collect());
+        $this->client->sendUsers($this->collect(), $this->collectRoles());
     }
 
     /**
@@ -57,5 +57,26 @@ final class UserInventoryReporter
             'orderby' => 'login',
             'order' => 'ASC',
         ]));
+    }
+
+    /**
+     * @return list<array{slug: string, name: string}>
+     */
+    private function collectRoles(): array
+    {
+        if (! function_exists('wp_roles')) {
+            return [];
+        }
+
+        $roles = [];
+
+        foreach (wp_roles()->roles as $slug => $role) {
+            $roles[] = [
+                'slug' => (string) $slug,
+                'name' => translate_user_role((string) ($role['name'] ?? $slug)),
+            ];
+        }
+
+        return $roles;
     }
 }
