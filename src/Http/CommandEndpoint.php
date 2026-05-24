@@ -63,7 +63,9 @@ final class CommandEndpoint
         $payload = is_array($body['payload'] ?? null) ? $body['payload'] : [];
 
         $result = match ($command) {
+            'install_plugin' => $this->installPlugin($payload),
             'update_plugin' => $this->updatePlugin((string) ($payload['slug'] ?? '')),
+            'deactivate_plugin' => $this->deactivatePlugin((string) ($payload['slug'] ?? '')),
             'delete_plugin' => $this->deletePlugin((string) ($payload['slug'] ?? '')),
             'update_all_plugins' => $this->updateAllPlugins(),
             'update_theme' => $this->updateTheme((string) ($payload['slug'] ?? '')),
@@ -80,7 +82,9 @@ final class CommandEndpoint
         };
 
         if (($result['ok'] ?? false) === true && in_array($command, [
+            'install_plugin',
             'update_plugin',
+            'deactivate_plugin',
             'delete_plugin',
             'update_all_plugins',
             'update_theme',
@@ -116,6 +120,66 @@ final class CommandEndpoint
         return $this->upgradeResult($result, "Plugin {$slug} updated.");
     }
 
+    private function installPlugin(array $payload): array
+    {
+        $slug = sanitize_key((string) ($payload['slug'] ?? ''));
+        $zipUrl = esc_url_raw((string) ($payload['zip_url'] ?? ''));
+        $activate = ! empty($payload['activate']);
+
+        if ($slug === '' && $zipUrl === '') {
+            return ['ok' => false, 'message' => 'Plugin slug or ZIP URL is required.'];
+        }
+
+        $source = $zipUrl;
+        if ($slug !== '') {
+            if (! function_exists('plugins_api')) {
+                require_once ABSPATH.'wp-admin/includes/plugin-install.php';
+            }
+
+            $plugin = plugins_api('plugin_information', [
+                'slug' => $slug,
+                'fields' => [
+                    'sections' => false,
+                ],
+            ]);
+
+            if (is_wp_error($plugin)) {
+                return ['ok' => false, 'message' => $plugin->get_error_message()];
+            }
+
+            $source = (string) ($plugin->download_link ?? '');
+        }
+
+        if ($source === '') {
+            return ['ok' => false, 'message' => 'Could not resolve a plugin download URL.'];
+        }
+
+        $this->loadUpgradeFiles();
+        $upgrader = new \Plugin_Upgrader(new \Automatic_Upgrader_Skin());
+        $result = $upgrader->install($source);
+        if (is_wp_error($result) || $result === false || $result === null) {
+            return $this->upgradeResult($result, 'Plugin installed.');
+        }
+
+        $pluginFile = method_exists($upgrader, 'plugin_info') ? $upgrader->plugin_info() : null;
+        if (! is_string($pluginFile) || $pluginFile === '') {
+            $pluginFile = $slug !== '' ? $this->resolvePluginFile($slug) : null;
+        }
+
+        if ($activate && is_string($pluginFile) && $pluginFile !== '') {
+            $activation = activate_plugin($pluginFile);
+            if (is_wp_error($activation)) {
+                return ['ok' => false, 'message' => 'Plugin installed but activation failed: '.$activation->get_error_message()];
+            }
+        }
+
+        if ($activate && (! is_string($pluginFile) || $pluginFile === '')) {
+            return ['ok' => false, 'message' => 'Plugin installed but could not determine the plugin file to activate.'];
+        }
+
+        return ['ok' => true, 'message' => $activate ? 'Plugin installed and activated.' : 'Plugin installed.'];
+    }
+
     private function deletePlugin(string $slug): array
     {
         $plugin = $this->resolvePluginFile($slug);
@@ -131,6 +195,22 @@ final class CommandEndpoint
         $result = delete_plugins([$plugin]);
 
         return $this->upgradeResult($result, "Plugin {$slug} deleted.");
+    }
+
+    private function deactivatePlugin(string $slug): array
+    {
+        $plugin = $this->resolvePluginFile($slug);
+        if ($plugin === null) {
+            return ['ok' => false, 'message' => "Plugin not found for slug {$slug}."];
+        }
+
+        if (! function_exists('deactivate_plugins')) {
+            require_once ABSPATH.'wp-admin/includes/plugin.php';
+        }
+
+        deactivate_plugins([$plugin], true);
+
+        return ['ok' => true, 'message' => "Plugin {$slug} deactivated."];
     }
 
     private function updateAllPlugins(): array
