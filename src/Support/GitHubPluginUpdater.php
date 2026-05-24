@@ -28,18 +28,30 @@ final class GitHubPluginUpdater
             return $transient;
         }
 
-        $release = $this->latestRelease();
+        $release = $this->latestRelease(true);
         if (! $release || $release['package'] === '') {
             return $transient;
         }
 
         if (! version_compare($release['version'], $this->installedVersion(), '>')) {
             unset($transient->response[$this->pluginBasename()]);
+            $transient->no_update[$this->pluginBasename()] = $this->updatePayload($release);
 
             return $transient;
         }
 
-        $transient->response[$this->pluginBasename()] = (object) [
+        unset($transient->no_update[$this->pluginBasename()]);
+        $transient->response[$this->pluginBasename()] = $this->updatePayload($release);
+
+        return $transient;
+    }
+
+    /**
+     * @param  array{version: string, package: string, notes: string, tested: string}  $release
+     */
+    private function updatePayload(array $release): object
+    {
+        return (object) [
             'id' => $this->repoUrl(),
             'slug' => self::SLUG,
             'plugin' => $this->pluginBasename(),
@@ -49,8 +61,6 @@ final class GitHubPluginUpdater
             'tested' => $release['tested'],
             'requires_php' => '8.1',
         ];
-
-        return $transient;
     }
 
     public function pluginInfo(mixed $result, string $action, object $args): mixed
@@ -83,10 +93,10 @@ final class GitHubPluginUpdater
     /**
      * @return array{version: string, package: string, notes: string, tested: string}|null
      */
-    private function latestRelease(): ?array
+    private function latestRelease(bool $forceRefresh = false): ?array
     {
         $cached = get_site_transient(self::CACHE_KEY);
-        if (is_array($cached)) {
+        if (! $forceRefresh && is_array($cached)) {
             return $cached;
         }
 

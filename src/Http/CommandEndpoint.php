@@ -124,14 +124,29 @@ final class CommandEndpoint
     {
         $slug = sanitize_key((string) ($payload['slug'] ?? ''));
         $zipUrl = esc_url_raw((string) ($payload['zip_url'] ?? ''));
+        $zipPackage = (string) ($payload['zip_package'] ?? '');
+        $zipName = sanitize_file_name((string) ($payload['zip_name'] ?? 'uploaded-plugin.zip'));
         $activate = ! empty($payload['activate']);
+        $temporaryPackage = null;
 
-        if ($slug === '' && $zipUrl === '') {
-            return ['ok' => false, 'message' => 'Plugin slug or ZIP URL is required.'];
+        if ($slug === '' && $zipUrl === '' && $zipPackage === '') {
+            return ['ok' => false, 'message' => 'Plugin slug, ZIP URL, or uploaded ZIP is required.'];
         }
 
         $source = $zipUrl;
-        if ($slug !== '') {
+        if ($zipPackage !== '') {
+            $decodedPackage = base64_decode($zipPackage, true);
+            if (! is_string($decodedPackage) || $decodedPackage === '') {
+                return ['ok' => false, 'message' => 'Uploaded plugin ZIP payload is invalid.'];
+            }
+
+            $temporaryPackage = trailingslashit(get_temp_dir()).wp_unique_filename(get_temp_dir(), $zipName ?: 'uploaded-plugin.zip');
+            if (file_put_contents($temporaryPackage, $decodedPackage) === false) {
+                return ['ok' => false, 'message' => 'Could not write uploaded plugin ZIP to a temporary file.'];
+            }
+
+            $source = $temporaryPackage;
+        } elseif ($slug !== '') {
             if (! function_exists('plugins_api')) {
                 require_once ABSPATH.'wp-admin/includes/plugin-install.php';
             }
@@ -157,6 +172,10 @@ final class CommandEndpoint
         $this->loadUpgradeFiles();
         $upgrader = new \Plugin_Upgrader(new \Automatic_Upgrader_Skin());
         $result = $upgrader->install($source);
+        if ($temporaryPackage !== null && file_exists($temporaryPackage)) {
+            unlink($temporaryPackage);
+        }
+
         if (is_wp_error($result) || $result === false || $result === null) {
             return $this->upgradeResult($result, 'Plugin installed.');
         }
