@@ -74,6 +74,7 @@ final class CommandEndpoint
             'create_user' => $this->createUser($payload),
             'update_user' => $this->updateUser($payload),
             'delete_user' => $this->deleteUser($payload),
+            'send_password_reset' => $this->sendPasswordReset($payload),
             'sync_inventory' => $this->syncInventory(),
             default => ['ok' => false, 'message' => "Unknown command: {$command}"],
         };
@@ -332,12 +333,42 @@ final class CommandEndpoint
             wp_new_user_notification($userId, null, $notify);
         }
 
-        if (! empty($payload['send_password_reset'])) {
-            $user = get_user_by('id', $userId);
-            if ($user instanceof \WP_User) {
-                retrieve_password($user->user_login);
-            }
+    }
+
+    private function sendPasswordReset(array $payload): array
+    {
+        $user = $this->resolveUser($payload);
+        if (! $user) {
+            return ['ok' => false, 'message' => 'WordPress user not found.'];
         }
+
+        $resetKey = get_password_reset_key($user);
+        if (is_wp_error($resetKey)) {
+            return ['ok' => false, 'message' => $resetKey->get_error_message()];
+        }
+
+        $siteName = wp_specialchars_decode((string) get_option('blogname'), ENT_QUOTES);
+        $resetUrl = network_site_url(
+            'wp-login.php?action=rp&key='.$resetKey.'&login='.rawurlencode($user->user_login),
+            'login'
+        );
+
+        $message = sprintf(
+            "Someone requested a password reset for your account on %s.\r\n\r\nUsername: %s\r\n\r\nSet your password here:\r\n%s\r\n\r\nIf you did not request this, you can ignore this email.",
+            $siteName,
+            $user->user_login,
+            $resetUrl,
+        );
+
+        $sent = wp_mail(
+            $user->user_email,
+            sprintf('[%s] Password Reset', $siteName),
+            $message
+        );
+
+        return $sent
+            ? ['ok' => true, 'message' => 'Set-password email sent.', 'user_id' => (int) $user->ID]
+            : ['ok' => false, 'message' => 'Set-password email could not be sent.'];
     }
 
     private function resolveUser(array $payload): ?\WP_User

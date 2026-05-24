@@ -60,12 +60,14 @@ final class InventoryReporter
 
         foreach (get_plugins() as $pluginFile => $data) {
             $availableVersion = $pluginUpdates[$pluginFile] ?? '';
+            $installedVersion = (string) ($data['Version'] ?? '');
+            $updateAvailable = $this->isNewerVersion($availableVersion, $installedVersion);
             $items[] = [
                 'name'    => (string) ($data['Name'] ?? $pluginFile),
                 'slug'    => dirname((string) $pluginFile),
-                'version' => (string) ($data['Version'] ?? ''),
-                'update_available' => $availableVersion !== '',
-                'available_version' => $availableVersion,
+                'version' => $installedVersion,
+                'update_available' => $updateAvailable,
+                'available_version' => $updateAvailable ? $availableVersion : '',
                 'type'    => 'plugin',
                 'active'  => isset($activeMap[$pluginFile]),
             ];
@@ -73,12 +75,13 @@ final class InventoryReporter
 
         global $wp_version;
         if (! empty($wp_version)) {
+            $coreUpdateAvailable = $this->isNewerVersion($coreUpdate, (string) $wp_version);
             $items[] = [
                 'name'    => 'WordPress Core',
                 'slug'    => 'wordpress',
                 'version' => (string) $wp_version,
-                'update_available' => $coreUpdate !== '',
-                'available_version' => $coreUpdate,
+                'update_available' => $coreUpdateAvailable,
+                'available_version' => $coreUpdateAvailable ? $coreUpdate : '',
                 'type'    => 'core',
                 'active'  => true,
             ];
@@ -88,12 +91,14 @@ final class InventoryReporter
         if ($current && $current->exists()) {
             $stylesheet = (string) $current->get_stylesheet();
             $availableVersion = $themeUpdates[$stylesheet] ?? '';
+            $installedVersion = (string) $current->get('Version');
+            $updateAvailable = $this->isNewerVersion($availableVersion, $installedVersion);
             $items[] = [
                 'name'    => (string) $current->get('Name'),
                 'slug'    => $stylesheet,
-                'version' => (string) $current->get('Version'),
-                'update_available' => $availableVersion !== '',
-                'available_version' => $availableVersion,
+                'version' => $installedVersion,
+                'update_available' => $updateAvailable,
+                'available_version' => $updateAvailable ? $availableVersion : '',
                 'type'    => 'theme',
                 'active'  => true,
             ];
@@ -162,5 +167,12 @@ final class InventoryReporter
         }
 
         return '';
+    }
+
+    private function isNewerVersion(string $availableVersion, string $installedVersion): bool
+    {
+        return $availableVersion !== ''
+            && $installedVersion !== ''
+            && version_compare($availableVersion, $installedVersion, '>');
     }
 }
