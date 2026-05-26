@@ -27,9 +27,9 @@ defined('ABSPATH') || exit;
     <p>Paste the monitor domain and the Monitor's <code>Webhook Secret</code> from the Uptime Monitor app.</p>
     <p class="description">GitHub release updates are enabled for this plugin.</p>
 
-    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-        <input type="hidden" name="action" value="<?php echo esc_attr($saveAction); ?>" />
-        <input type="hidden" name="_wpnonce" value="<?php echo esc_attr($nonceSave); ?>" />
+    <form method="post" action="<?= esc_url(admin_url('admin-post.php')); ?>">
+        <input type="hidden" name="action" value="<?= esc_attr($saveAction); ?>" />
+        <input type="hidden" name="_wpnonce" value="<?= esc_attr($nonceSave); ?>" />
 
         <table class="form-table" role="presentation">
             <tr>
@@ -39,11 +39,11 @@ defined('ABSPATH') || exit;
                         type="text"
                         id="panza-um-url"
                         name="url"
-                        value="<?php echo esc_attr($url); ?>"
+                        value="<?= esc_attr($url); ?>"
                         class="regular-text code"
                         placeholder="https://whitesmoke-camel-166125.hostingersite.com"
                     />
-                    <p class="description">Only the monitor domain is required. Endpoint paths are configured by the plugin.</p>
+                    <p class="description">Enter the monitor domain.</p>
                 </td>
             </tr>
             <tr>
@@ -53,11 +53,11 @@ defined('ABSPATH') || exit;
                         type="password"
                         id="panza-um-secret"
                         name="secret"
-                        value="<?php echo esc_attr($secret); ?>"
+                        value="<?= esc_attr($secret); ?>"
                         class="regular-text code"
                         autocomplete="off"
                     />
-                    <p class="description">Used to HMAC-sign each request. Must match the Monitor's <code>update_webhook_secret</code>.</p>
+                    <p class="description">Copy the Webhook Secret from the Monitor -> Integrations tab.</p>
                 </td>
             </tr>
         </table>
@@ -81,8 +81,8 @@ defined('ABSPATH') || exit;
             btn.disabled = true;
 
             const body = new URLSearchParams({
-                action: <?php echo wp_json_encode($testAction); ?>,
-                _ajax_nonce: <?php echo wp_json_encode($nonceTest); ?>,
+                action: <?= wp_json_encode($testAction); ?>,
+                _ajax_nonce: <?= wp_json_encode($nonceTest); ?>,
             });
 
             try {
@@ -109,8 +109,8 @@ defined('ABSPATH') || exit;
             checkBtn.disabled = true;
 
             const body = new URLSearchParams({
-                action: <?php echo wp_json_encode($checkAction); ?>,
-                _ajax_nonce: <?php echo wp_json_encode($nonceCheck); ?>,
+                action: <?= wp_json_encode($checkAction); ?>,
+                _ajax_nonce: <?= wp_json_encode($nonceCheck); ?>,
             });
 
             try {
