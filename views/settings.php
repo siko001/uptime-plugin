@@ -24,7 +24,7 @@ defined('ABSPATH') || exit;
         </div>
     <?php endif; ?>
 
-    <p>Paste the monitor domain and the Monitor's <code>Update Webhook Secret</code> from the Uptime Monitor app.</p>
+    <p>Paste the monitor domain and the Monitor's <code>Webhook Secret</code> from the Uptime Monitor app.</p>
     <p class="description">GitHub release updates are enabled for this plugin.</p>
 
     <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
@@ -118,9 +118,10 @@ defined('ABSPATH') || exit;
                 const data = await res.json();
 
                 if (data.ok) {
-                    const core = data.core ? 'yes' : 'no';
-                    out.innerHTML = '<strong style="color:#00a32a;">✓ Updates checked</strong> — Plugins: '
-                        + data.plugins + ', Themes: ' + data.themes + ', Core: ' + core;
+                    const message = data.update_available
+                        ? 'Update available: ' + data.installed_version + ' → ' + data.latest_version
+                        : 'Already up to date at version ' + data.installed_version;
+                    out.innerHTML = '<strong style="color:#00a32a;">✓ Plugin checked</strong> — ' + message;
                 } else {
                     out.innerHTML = '<strong style="color:#d63638;">✗ Failed</strong> — '
                         + (data.error || 'Could not check updates.');

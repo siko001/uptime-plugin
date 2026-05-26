@@ -47,6 +47,33 @@ final class GitHubPluginUpdater
     }
 
     /**
+     * @return array{ok: bool, installed_version: string, latest_version?: string, update_available?: bool, error?: string}
+     */
+    public function checkForUpdate(): array
+    {
+        $installedVersion = $this->installedVersion();
+        $release = $this->latestRelease(true);
+
+        if (! $release || $release['package'] === '') {
+            return [
+                'ok' => false,
+                'installed_version' => $installedVersion,
+                'error' => 'Could not fetch a valid Panza Uptime Monitor release from GitHub.',
+            ];
+        }
+
+        $updateAvailable = version_compare($release['version'], $installedVersion, '>');
+        $this->storePluginUpdate($release, $updateAvailable);
+
+        return [
+            'ok' => true,
+            'installed_version' => $installedVersion,
+            'latest_version' => $release['version'],
+            'update_available' => $updateAvailable,
+        ];
+    }
+
+    /**
      * @param  array{version: string, package: string, notes: string, tested: string}  $release
      */
     private function updatePayload(array $release): object
@@ -61,6 +88,40 @@ final class GitHubPluginUpdater
             'tested' => $release['tested'],
             'requires_php' => '8.1',
         ];
+    }
+
+    /**
+     * @param  array{version: string, package: string, notes: string, tested: string}  $release
+     */
+    private function storePluginUpdate(array $release, bool $updateAvailable): void
+    {
+        $transient = get_site_transient('update_plugins');
+
+        if (! is_object($transient)) {
+            $transient = (object) [
+                'last_checked' => time(),
+                'checked' => [],
+                'response' => [],
+                'no_update' => [],
+            ];
+        }
+
+        $basename = $this->pluginBasename();
+        $transient->last_checked = time();
+        $transient->checked = is_array($transient->checked ?? null) ? $transient->checked : [];
+        $transient->response = is_array($transient->response ?? null) ? $transient->response : [];
+        $transient->no_update = is_array($transient->no_update ?? null) ? $transient->no_update : [];
+        $transient->checked[$basename] = $this->installedVersion();
+
+        if ($updateAvailable) {
+            unset($transient->no_update[$basename]);
+            $transient->response[$basename] = $this->updatePayload($release);
+        } else {
+            unset($transient->response[$basename]);
+            $transient->no_update[$basename] = $this->updatePayload($release);
+        }
+
+        set_site_transient('update_plugins', $transient);
     }
 
     public function pluginInfo(mixed $result, string $action, object $args): mixed
