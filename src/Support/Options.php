@@ -11,7 +11,14 @@ final class Options
 
     public static function getUrl(): string
     {
-        return (string) get_option(self::URL_KEY, '');
+        return WebhookConfig::url('updates');
+    }
+
+    public static function getMonitorDomain(): string
+    {
+        $domain = WebhookConfig::normalizeDomain((string) get_option(self::URL_KEY, ''));
+
+        return $domain !== '' ? $domain : WebhookConfig::fallbackMonitorDomain();
     }
 
     public static function getSecret(): string
@@ -21,7 +28,12 @@ final class Options
 
     public static function setUrl(string $url): void
     {
-        update_option(self::URL_KEY, $url);
+        self::setMonitorDomain($url);
+    }
+
+    public static function setMonitorDomain(string $domain): void
+    {
+        update_option(self::URL_KEY, WebhookConfig::normalizeDomain($domain));
     }
 
     public static function setSecret(string $secret): void

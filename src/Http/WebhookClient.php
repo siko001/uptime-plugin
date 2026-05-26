@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace Panza\UptimeMonitor\Http;
 
 use Panza\UptimeMonitor\Support\Options;
+use Panza\UptimeMonitor\Support\WebhookConfig;
 
 final class WebhookClient
 {
     public function send(array $items): void
     {
-        $url    = Options::getUrl();
+        $url    = WebhookConfig::url('updates');
         $secret = Options::getSecret();
 
         if ($url === '' || $secret === '' || $items === []) {
@@ -29,31 +30,24 @@ final class WebhookClient
     }
 
     /**
-     * Push the current installed plugin inventory to the monitor's
-     * `wp-plugins` endpoint. Derived from the configured update webhook URL by
-     * swapping the trailing `wp-update` segment for `wp-plugins`.
+     * Push the current installed plugin inventory to the configured
+     * `wp-plugins` endpoint.
      *
      * @param  list<array<string, mixed>>  $plugins
      */
     public function sendInventory(array $plugins): void
     {
-        $url    = Options::getUrl();
+        $url    = WebhookConfig::url('plugins');
         $secret = Options::getSecret();
 
         if ($url === '' || $secret === '' || $plugins === []) {
             return;
         }
 
-        $inventoryUrl = preg_replace('~/wp-update/?$~', '/wp-plugins', rtrim($url, '/'));
-
-        if ($inventoryUrl === $url) {
-            $inventoryUrl = rtrim($url, '/') . '/../wp-plugins';
-        }
-
         $body    = $this->buildBody(['plugins' => $plugins]);
         $headers = $this->signedHeaders($body, $secret);
 
-        wp_remote_post($inventoryUrl, [
+        wp_remote_post($url, [
             'timeout'  => 5,
             'blocking' => false,
             'headers'  => $headers,
@@ -67,23 +61,17 @@ final class WebhookClient
      */
     public function sendUsers(array $users, array $roles = []): void
     {
-        $url = Options::getUrl();
+        $url = WebhookConfig::url('users');
         $secret = Options::getSecret();
 
         if ($url === '' || $secret === '' || ($users === [] && $roles === [])) {
             return;
         }
 
-        $usersUrl = preg_replace('~/wp-update/?$~', '/wp-users', rtrim($url, '/'));
-
-        if ($usersUrl === $url) {
-            $usersUrl = rtrim($url, '/').'/../wp-users';
-        }
-
         $body = $this->buildBody(['users' => $users, 'roles' => $roles]);
         $headers = $this->signedHeaders($body, $secret);
 
-        wp_remote_post($usersUrl, [
+        wp_remote_post($url, [
             'timeout' => 5,
             'blocking' => false,
             'headers' => $headers,
@@ -96,21 +84,20 @@ final class WebhookClient
      */
     public function ping(): array
     {
-        $url    = Options::getUrl();
+        $url    = WebhookConfig::url('ping');
         $secret = Options::getSecret();
 
         if ($url === '') {
-            return ['ok' => false, 'error' => 'Webhook URL not configured.'];
+            return ['ok' => false, 'error' => 'Monitor domain not configured.'];
         }
         if ($secret === '') {
             return ['ok' => false, 'error' => 'Webhook secret not configured.'];
         }
 
-        $pingUrl = rtrim($url, '/') . '/ping';
         $body    = $this->buildBody([]);
         $headers = $this->signedHeaders($body, $secret);
 
-        $response = wp_remote_post($pingUrl, [
+        $response = wp_remote_post($url, [
             'timeout'  => 10,
             'blocking' => true,
             'headers'  => $headers,
