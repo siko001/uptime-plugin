@@ -141,10 +141,16 @@ git push origin v1.1.0
 
 ## Important Note
 
-The custom updater is implemented in:
+The custom updater is configured in:
+
+```text
+config/github-updater.php
+```
+
+And implemented in:
 
 ```text
 src/Support/GitHubPluginUpdater.php
 ```
 
-If you change the GitHub repo name, repo owner, plugin slug, or release ZIP filename, update the constants in that class.
+If you change the GitHub repo name, repo owner, plugin slug, or release ZIP filename, update `config/github-updater.php`.

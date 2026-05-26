@@ -6,16 +6,6 @@ namespace Panza\UptimeMonitor\Support;
 
 final class GitHubPluginUpdater
 {
-    private const OWNER = 'siko001';
-
-    private const REPO = 'uptime-plugin';
-
-    private const SLUG = 'panza-uptime-monitor';
-
-    private const ZIP_ASSET = 'panza-uptime-monitor.zip';
-
-    private const CACHE_KEY = 'panza_uptime_monitor_github_release';
-
     public function register(): void
     {
         add_filter('pre_set_site_transient_update_plugins', [$this, 'injectUpdate']);
@@ -58,7 +48,7 @@ final class GitHubPluginUpdater
             return [
                 'ok' => false,
                 'installed_version' => $installedVersion,
-                'error' => 'Could not fetch a valid Panza Uptime Monitor release from GitHub.',
+                'error' => sprintf('Could not fetch a valid %s release from GitHub.', $this->config('name')),
             ];
         }
 
@@ -80,13 +70,13 @@ final class GitHubPluginUpdater
     {
         return (object) [
             'id' => $this->repoUrl(),
-            'slug' => self::SLUG,
+            'slug' => $this->config('slug'),
             'plugin' => $this->pluginBasename(),
             'new_version' => $release['version'],
             'url' => $this->repoUrl(),
             'package' => $release['package'],
             'tested' => $release['tested'],
-            'requires_php' => '8.1',
+            'requires_php' => $this->config('requires_php'),
         ];
     }
 
@@ -126,7 +116,7 @@ final class GitHubPluginUpdater
 
     public function pluginInfo(mixed $result, string $action, object $args): mixed
     {
-        if ($action !== 'plugin_information' || ($args->slug ?? '') !== self::SLUG) {
+        if ($action !== 'plugin_information' || ($args->slug ?? '') !== $this->config('slug')) {
             return $result;
         }
 
@@ -136,16 +126,16 @@ final class GitHubPluginUpdater
         }
 
         return (object) [
-            'name' => 'Panza Uptime Monitor',
-            'slug' => self::SLUG,
+            'name' => $this->config('name'),
+            'slug' => $this->config('slug'),
             'version' => $release['version'],
-            'author' => '<a href="https://github.com/'.self::OWNER.'">Panza</a>',
+            'author' => '<a href="https://github.com/'.$this->config('owner').'">'.$this->config('author').'</a>',
             'homepage' => $this->repoUrl(),
-            'requires_php' => '8.1',
+            'requires_php' => $this->config('requires_php'),
             'tested' => $release['tested'],
             'download_link' => $release['package'],
             'sections' => [
-                'description' => 'Reports WordPress updates, inventory, users, and accepts signed commands from Panza Uptime Monitor.',
+                'description' => $this->config('description'),
                 'changelog' => nl2br(esc_html($release['notes'] ?: 'See the GitHub release notes.')),
             ],
         ];
@@ -156,7 +146,7 @@ final class GitHubPluginUpdater
      */
     private function latestRelease(bool $forceRefresh = false): ?array
     {
-        $cached = get_site_transient(self::CACHE_KEY);
+        $cached = get_site_transient($this->config('cache_key'));
         if (! $forceRefresh && is_array($cached)) {
             return $cached;
         }
@@ -165,19 +155,19 @@ final class GitHubPluginUpdater
             'timeout' => 10,
             'headers' => [
                 'Accept' => 'application/vnd.github+json',
-                'User-Agent' => 'panza-uptime-monitor-updater',
+                'User-Agent' => $this->config('user_agent'),
             ],
         ]);
 
         if (is_wp_error($response) || (int) wp_remote_retrieve_response_code($response) !== 200) {
-            set_site_transient(self::CACHE_KEY, null, 5 * MINUTE_IN_SECONDS);
+            set_site_transient($this->config('cache_key'), null, 5 * MINUTE_IN_SECONDS);
 
             return null;
         }
 
         $data = json_decode((string) wp_remote_retrieve_body($response), true);
         if (! is_array($data) || empty($data['tag_name'])) {
-            set_site_transient(self::CACHE_KEY, null, 5 * MINUTE_IN_SECONDS);
+            set_site_transient($this->config('cache_key'), null, 5 * MINUTE_IN_SECONDS);
 
             return null;
         }
@@ -190,7 +180,7 @@ final class GitHubPluginUpdater
             'tested' => (string) ($data['tested'] ?? ''),
         ];
 
-        set_site_transient(self::CACHE_KEY, $release, $package === '' ? 5 * MINUTE_IN_SECONDS : 6 * HOUR_IN_SECONDS);
+        set_site_transient($this->config('cache_key'), $release, $package === '' ? 5 * MINUTE_IN_SECONDS : 6 * HOUR_IN_SECONDS);
 
         return $release;
     }
@@ -207,7 +197,7 @@ final class GitHubPluginUpdater
                 continue;
             }
 
-            if (($asset['name'] ?? '') === self::ZIP_ASSET && ! empty($asset['browser_download_url'])) {
+            if (($asset['name'] ?? '') === $this->config('zip_asset') && ! empty($asset['browser_download_url'])) {
                 return (string) $asset['browser_download_url'];
             }
         }
@@ -233,11 +223,23 @@ final class GitHubPluginUpdater
 
     private function apiUrl(): string
     {
-        return 'https://api.github.com/repos/'.self::OWNER.'/'.self::REPO.'/releases/latest';
+        return 'https://api.github.com/repos/'.$this->config('owner').'/'.$this->config('repo').'/releases/latest';
     }
 
     private function repoUrl(): string
     {
-        return 'https://github.com/'.self::OWNER.'/'.self::REPO;
+        return 'https://github.com/'.$this->config('owner').'/'.$this->config('repo');
+    }
+
+    private function config(string $key): string
+    {
+        static $config = null;
+
+        if ($config === null) {
+            $loaded = require PANZA_UPTIME_MONITOR_DIR . '/config/github-updater.php';
+            $config = is_array($loaded) ? $loaded : [];
+        }
+
+        return (string) ($config[$key] ?? '');
     }
 }
