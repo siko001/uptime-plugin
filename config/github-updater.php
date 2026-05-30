@@ -6,7 +6,7 @@ return [
     'owner' => 'siko001',
     'repo' => 'uptime-plugin',
     'slug' => 'panza-uptime-monitor',
-    'zip_asset' => 'panza-uptime-monitor.zip',
+    'zip_asset' => 'atx-uptime-monitor.zip',
     'cache_key' => 'atx_uptime_monitor_github_release',
     'name' => 'ATX Uptime Monitor',
     'author' => 'ATX',
