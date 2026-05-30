@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Panza\UptimeMonitor\Http;
+namespace ATX\UptimeMonitor\Http;
 
-use Panza\UptimeMonitor\Support\Options;
-use Panza\UptimeMonitor\Support\WebhookConfig;
+use ATX\UptimeMonitor\Support\Options;
+use ATX\UptimeMonitor\Support\WebhookConfig;
 
 final class WebhookClient
 {

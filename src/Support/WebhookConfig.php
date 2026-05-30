@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Panza\UptimeMonitor\Support;
+namespace ATX\UptimeMonitor\Support;
 
 final class WebhookConfig
 {
@@ -11,7 +11,7 @@ final class WebhookConfig
      */
     public static function all(): array
     {
-        $config = require PANZA_UPTIME_MONITOR_DIR . '/config/webhooks.php';
+        $config = require ATX_UPTIME_MONITOR_DIR . '/config/webhooks.php';
 
         return is_array($config) ? $config : [
             'fallback_monitor_domain' => 'https://whitesmoke-camel-166125.hostingersite.com',

@@ -2,17 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Panza\UptimeMonitor;
+namespace ATX\UptimeMonitor;
 
-use Panza\UptimeMonitor\Admin\SettingsPage;
-use Panza\UptimeMonitor\Hooks\CliDeleteReporter;
-use Panza\UptimeMonitor\Hooks\DeleteReporter;
-use Panza\UptimeMonitor\Hooks\InventoryReporter;
-use Panza\UptimeMonitor\Hooks\UpdateReporter;
-use Panza\UptimeMonitor\Hooks\UserInventoryReporter;
-use Panza\UptimeMonitor\Http\CommandEndpoint;
-use Panza\UptimeMonitor\Http\WebhookClient;
-use Panza\UptimeMonitor\Support\GitHubPluginUpdater;
+use ATX\UptimeMonitor\Admin\SettingsPage;
+use ATX\UptimeMonitor\Hooks\CliDeleteReporter;
+use ATX\UptimeMonitor\Hooks\DeleteReporter;
+use ATX\UptimeMonitor\Hooks\InventoryReporter;
+use ATX\UptimeMonitor\Hooks\UpdateReporter;
+use ATX\UptimeMonitor\Hooks\UserInventoryReporter;
+use ATX\UptimeMonitor\Http\CommandEndpoint;
+use ATX\UptimeMonitor\Http\WebhookClient;
 
 final class Plugin
 {
@@ -21,7 +20,6 @@ final class Plugin
         $client = new WebhookClient();
 
         (new SettingsPage($client))->register();
-        (new GitHubPluginUpdater())->register();
         (new UpdateReporter($client))->register();
         (new DeleteReporter($client))->register();
         (new CliDeleteReporter($client))->register();

@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Panza\UptimeMonitor\Support;
+namespace ATX\UptimeMonitor\Support;
 
 final class Options
 {
-    public const URL_KEY    = 'panza_uptime_monitor_url';
-    public const SECRET_KEY = 'panza_uptime_monitor_key';
+    public const URL_KEY    = 'atx_uptime_monitor_url';
+    public const SECRET_KEY = 'atx_uptime_monitor_key';
 
     public static function getUrl(): string
     {

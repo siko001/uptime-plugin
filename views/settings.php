@@ -33,11 +33,11 @@ defined('ABSPATH') || exit;
 
         <table class="form-table" role="presentation">
             <tr>
-                <th scope="row"><label for="panza-um-url">Monitor Domain</label></th>
+                <th scope="row"><label for="atx-um-url">Monitor Domain</label></th>
                 <td>
                     <input
                         type="text"
-                        id="panza-um-url"
+                        id="atx-um-url"
                         name="url"
                         value="<?= esc_attr($url); ?>"
                         class="regular-text code"
@@ -47,11 +47,11 @@ defined('ABSPATH') || exit;
                 </td>
             </tr>
             <tr>
-                <th scope="row"><label for="panza-um-secret">Webhook Secret</label></th>
+                <th scope="row"><label for="atx-um-secret">Webhook Secret</label></th>
                 <td>
                     <input
                         type="password"
-                        id="panza-um-secret"
+                        id="atx-um-secret"
                         name="secret"
                         value="<?= esc_attr($secret); ?>"
                         class="regular-text code"
@@ -64,17 +64,17 @@ defined('ABSPATH') || exit;
 
         <p>
             <button type="submit" class="button button-primary">Save Settings</button>
-            <button type="button" class="button" id="panza-um-test">Test Connection</button>
-            <button type="button" class="button" id="panza-um-check-updates">Check for Updates</button>
-            <span id="panza-um-test-result" style="margin-left:8px;"></span>
+            <button type="button" class="button" id="atx-um-test">Test Connection</button>
+            <button type="button" class="button" id="atx-um-check-updates">Check for Updates</button>
+            <span id="atx-um-test-result" style="margin-left:8px;"></span>
         </p>
     </form>
 
     <script>
     (function () {
-        const btn = document.getElementById('panza-um-test');
-        const checkBtn = document.getElementById('panza-um-check-updates');
-        const out = document.getElementById('panza-um-test-result');
+        const btn = document.getElementById('atx-um-test');
+        const checkBtn = document.getElementById('atx-um-check-updates');
+        const out = document.getElementById('atx-um-test-result');
 
         if (btn) btn.addEventListener('click', async () => {
             out.innerHTML = '<em>Testing…</em>';

@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Panza\UptimeMonitor\Hooks;
+namespace ATX\UptimeMonitor\Hooks;
 
-use Panza\UptimeMonitor\Http\WebhookClient;
+use ATX\UptimeMonitor\Http\WebhookClient;
 
 final class InventoryReporter
 {
-    public const CRON_HOOK = 'panza_uptime_monitor_push_inventory';
+    public const CRON_HOOK = 'atx_uptime_monitor_push_inventory';
 
     public function __construct(private readonly WebhookClient $client)
     {

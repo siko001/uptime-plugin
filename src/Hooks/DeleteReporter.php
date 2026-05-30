@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Panza\UptimeMonitor\Hooks;
+namespace ATX\UptimeMonitor\Hooks;
 
-use Panza\UptimeMonitor\Http\WebhookClient;
+use ATX\UptimeMonitor\Http\WebhookClient;
 
 final class DeleteReporter
 {

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Panza\UptimeMonitor\Http;
+namespace ATX\UptimeMonitor\Http;
 
-use Panza\UptimeMonitor\Support\Options;
+use ATX\UptimeMonitor\Support\Options;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -18,7 +18,7 @@ final class CommandEndpoint
     public function register(): void
     {
         add_action('rest_api_init', function (): void {
-            register_rest_route('panza-uptime-monitor/v1', '/command', [
+            register_rest_route('atx-uptime-monitor/v1', '/command', [
                 'methods' => 'POST',
                 'permission_callback' => [$this, 'verify'],
                 'callback' => [$this, 'handle'],
@@ -30,23 +30,23 @@ final class CommandEndpoint
     {
         $secret = Options::getSecret();
         if ($secret === '') {
-            return new WP_Error('panza_uptime_monitor_unconfigured', 'Command secret is not configured.', ['status' => 403]);
+            return new WP_Error('atx_uptime_monitor_unconfigured', 'Command secret is not configured.', ['status' => 403]);
         }
 
         $timestamp = (string) $request->get_header('x-timestamp');
         $signature = (string) $request->get_header('x-signature');
 
         if ($timestamp === '' || $signature === '') {
-            return new WP_Error('panza_uptime_monitor_missing_signature', 'Missing signature headers.', ['status' => 401]);
+            return new WP_Error('atx_uptime_monitor_missing_signature', 'Missing signature headers.', ['status' => 401]);
         }
 
         if (! ctype_digit($timestamp) || abs(time() - (int) $timestamp) > 300) {
-            return new WP_Error('panza_uptime_monitor_bad_timestamp', 'Timestamp is outside the allowed window.', ['status' => 401]);
+            return new WP_Error('atx_uptime_monitor_bad_timestamp', 'Timestamp is outside the allowed window.', ['status' => 401]);
         }
 
         $expected = 'sha256='.hash_hmac('sha256', $timestamp.'.'.$request->get_body(), $secret);
         if (! hash_equals($expected, $signature)) {
-            return new WP_Error('panza_uptime_monitor_bad_signature', 'Signature mismatch.', ['status' => 401]);
+            return new WP_Error('atx_uptime_monitor_bad_signature', 'Signature mismatch.', ['status' => 401]);
         }
 
         return true;
@@ -531,15 +531,15 @@ final class CommandEndpoint
 
     private function pushInventory(): void
     {
-        if (class_exists(\Panza\UptimeMonitor\Hooks\InventoryReporter::class)) {
-            (new \Panza\UptimeMonitor\Hooks\InventoryReporter($this->client))->push();
+        if (class_exists(\ATX\UptimeMonitor\Hooks\InventoryReporter::class)) {
+            (new \ATX\UptimeMonitor\Hooks\InventoryReporter($this->client))->push();
         }
     }
 
     private function pushUsers(): void
     {
-        if (class_exists(\Panza\UptimeMonitor\Hooks\UserInventoryReporter::class)) {
-            (new \Panza\UptimeMonitor\Hooks\UserInventoryReporter($this->client))->push();
+        if (class_exists(\ATX\UptimeMonitor\Hooks\UserInventoryReporter::class)) {
+            (new \ATX\UptimeMonitor\Hooks\UserInventoryReporter($this->client))->push();
         }
     }
 

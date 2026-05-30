@@ -2,25 +2,25 @@
 
 declare(strict_types=1);
 
-namespace Panza\UptimeMonitor\Admin;
+namespace Atx\UptimeMonitor\Admin;
 
-use Panza\UptimeMonitor\Http\WebhookClient;
-use Panza\UptimeMonitor\Support\GitHubPluginUpdater;
-use Panza\UptimeMonitor\Support\Options;
+use Atx\UptimeMonitor\Http\WebhookClient;
+use Atx\UptimeMonitor\Support\GitHubPluginUpdater;
+use Atx\UptimeMonitor\Support\Options;
 
 final class SettingsPage
 {
-    private const NONCE_SAVE = 'panza_um_save';
-    private const NONCE_TEST = 'panza_um_test';
-    private const NONCE_CHECK = 'panza_um_check_updates';
-    private const MENU_SLUG  = 'panza-uptime-monitor';
+    private const NONCE_SAVE = 'atx_um_save';
+    private const NONCE_TEST = 'atx_um_test';
+    private const NONCE_CHECK = 'atx_um_check_updates';
+    private const MENU_SLUG  = 'atx-uptime-monitor';
     private const PERMISSION = 'manage_options';
     private const PAGE_TITLE = 'Uptime Monitor';
     private const MENU_TITLE = 'Uptime Monitor';
-    private const SAVE_ACTION = 'panza_um_save';
-    private const TEST_ACTION = 'panza_um_test';
-    private const CHECK_ACTION = 'panza_um_check_updates';
-    private const CHECK_POST_ACTION = 'panza_um_check_updates_post';
+    private const SAVE_ACTION = 'atx_um_save';
+    private const TEST_ACTION = 'atx_um_test';
+    private const CHECK_ACTION = 'atx_um_check_updates';
+    private const CHECK_POST_ACTION = 'atx_um_check_updates_post';
 
     public function __construct(private readonly WebhookClient $client)
     {
@@ -33,7 +33,7 @@ final class SettingsPage
         add_action('admin_post_' . self::CHECK_POST_ACTION, [$this, 'handleCheckUpdatesPost']);
         add_action('wp_ajax_' . self::TEST_ACTION, [$this, 'handleTest']);
         add_action('wp_ajax_' . self::CHECK_ACTION, [$this, 'handleCheckUpdates']);
-        add_filter('plugin_action_links_' . plugin_basename(PANZA_UPTIME_MONITOR_FILE), [$this, 'pluginActionLinks']);
+        add_filter('plugin_action_links_' . plugin_basename(ATX_UPTIME_MONITOR_FILE), [$this, 'pluginActionLinks']);
         add_action('admin_notices', [$this, 'showUpdateCheckNotice']);
     }
 
@@ -64,7 +64,7 @@ final class SettingsPage
         $testAction = self::TEST_ACTION;
         $checkAction = self::CHECK_ACTION;
 
-        require PANZA_UPTIME_MONITOR_DIR . '/views/settings.php';
+        require ATX_UPTIME_MONITOR_DIR . '/views/settings.php';
     }
 
     public function handleSave(): void
@@ -114,12 +114,12 @@ final class SettingsPage
 
         $result = $this->checkUpdates();
         $redirect = add_query_arg([
-            'panza_um_updates_checked' => '1',
-            'panza_um_update_ok' => $result['ok'] ? '1' : '0',
-            'panza_um_installed_version' => (string) ($result['installed_version'] ?? ''),
-            'panza_um_latest_version' => (string) ($result['latest_version'] ?? ''),
-            'panza_um_update_available' => ! empty($result['update_available']) ? '1' : '0',
-            'panza_um_update_error' => (string) ($result['error'] ?? ''),
+            'atx_um_updates_checked' => '1',
+            'atx_um_update_ok' => $result['ok'] ? '1' : '0',
+            'atx_um_installed_version' => (string) ($result['installed_version'] ?? ''),
+            'atx_um_latest_version' => (string) ($result['latest_version'] ?? ''),
+            'atx_um_update_available' => ! empty($result['update_available']) ? '1' : '0',
+            'atx_um_update_error' => (string) ($result['error'] ?? ''),
         ], admin_url('plugins.php'));
 
         wp_safe_redirect($redirect);
@@ -133,10 +133,10 @@ final class SettingsPage
             self::NONCE_CHECK
         );
 
-        $links['panza-check-updates'] = sprintf(
+        $links['atx-check-updates'] = sprintf(
             '<a href="%s">%s</a>',
             esc_url($url),
-            esc_html__('Check for updates', 'panza-uptime-monitor')
+            esc_html__('Check for updates', 'atx-uptime-monitor')
         );
 
         return $links;
@@ -144,20 +144,20 @@ final class SettingsPage
 
     public function showUpdateCheckNotice(): void
     {
-        if (! current_user_can(self::PERMISSION) || empty($_GET['panza_um_updates_checked'])) {
+        if (! current_user_can(self::PERMISSION) || empty($_GET['atx_um_updates_checked'])) {
             return;
         }
 
-        $ok = ! empty($_GET['panza_um_update_ok']);
-        $installedVersion = sanitize_text_field((string) ($_GET['panza_um_installed_version'] ?? ''));
-        $latestVersion = sanitize_text_field((string) ($_GET['panza_um_latest_version'] ?? ''));
-        $updateAvailable = ! empty($_GET['panza_um_update_available']);
+        $ok = ! empty($_GET['atx_um_update_ok']);
+        $installedVersion = sanitize_text_field((string) ($_GET['atx_um_installed_version'] ?? ''));
+        $latestVersion = sanitize_text_field((string) ($_GET['atx_um_latest_version'] ?? ''));
+        $updateAvailable = ! empty($_GET['atx_um_update_available']);
 
         if (! $ok) {
-            $error = sanitize_text_field((string) ($_GET['panza_um_update_error'] ?? 'Could not check for updates.'));
+            $error = sanitize_text_field((string) ($_GET['atx_um_update_error'] ?? 'Could not check for updates.'));
             printf(
                 '<div class="notice notice-error is-dismissible"><p><strong>%s</strong> %s</p></div>',
-                esc_html__('Panza Uptime Monitor update check failed.', 'panza-uptime-monitor'),
+                esc_html__('ATX Uptime Monitor update check failed.', 'atx-uptime-monitor'),
                 esc_html($error)
             );
 
@@ -170,7 +170,7 @@ final class SettingsPage
 
         printf(
             '<div class="notice notice-success is-dismissible"><p><strong>%s</strong> %s</p></div>',
-            esc_html__('Panza Uptime Monitor checked.', 'panza-uptime-monitor'),
+            esc_html__('ATX Uptime Monitor checked.', 'atx-uptime-monitor'),
             esc_html($message)
         );
     }
@@ -180,6 +180,6 @@ final class SettingsPage
      */
     private function checkUpdates(): array
     {
-        return (new GitHubPluginUpdater())->checkForUpdate();
+        return (new GitHubPluginUpdater(ATX_UPTIME_MONITOR_FILE, ATX_UPTIME_MONITOR_DIR))->checkForUpdate();
     }
 }

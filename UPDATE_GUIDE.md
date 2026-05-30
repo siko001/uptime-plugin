@@ -1,4 +1,4 @@
-# Panza Uptime Monitor Plugin Updates
+# atx Uptime Monitor Plugin Updates
 
 This plugin can receive normal-looking WordPress updates without being listed on wordpress.org. The custom updater is wired to this public GitHub repo:
 
@@ -9,7 +9,7 @@ https://github.com/siko001/uptime-plugin
 The updater checks the latest GitHub Release and looks for an attached ZIP asset named:
 
 ```text
-panza-uptime-monitor.zip
+atx-uptime-monitor.zip
 ```
 
 ## Recommended Release Setup
@@ -17,9 +17,9 @@ panza-uptime-monitor.zip
 1. Use the dedicated GitHub repository:
    `siko001/uptime-plugin`
 2. Keep the plugin folder name stable:
-   `panza-uptime-monitor`
+   `atx-uptime-monitor`
 3. Keep the main plugin file stable:
-   `panza-uptime-monitor.php`
+   `atx-uptime-monitor.php`
 4. Push to `main`.
 
    The GitHub Actions workflow automatically creates the next patch tag and release.
@@ -36,14 +36,14 @@ Manual tags still work if you want to choose the exact version yourself:
 5. The GitHub Actions workflow creates/updates the GitHub Release and uploads:
 
    ```text
-   panza-uptime-monitor.zip
+   atx-uptime-monitor.zip
    ```
 
    The ZIP must contain the plugin folder at its root:
 
    ```text
-   panza-uptime-monitor/
-     panza-uptime-monitor.php
+   atx-uptime-monitor/
+     atx-uptime-monitor.php
      src/
      views/
    ```
@@ -54,7 +54,7 @@ WordPress periodically builds an update list using the `site_transient_update_pl
 
 For this plugin, add a custom updater class that:
 
-1. Reads the installed version from `panza-uptime-monitor.php`.
+1. Reads the installed version from `atx-uptime-monitor.php`.
 2. Calls the GitHub Releases API for the latest release.
 3. Compares the latest release tag, for example `v1.0.1`, against the installed version.
 4. If newer, injects update metadata into `site_transient_update_plugins`.
@@ -80,7 +80,7 @@ Possible, but the WordPress site needs a GitHub token with read access to the re
 Example constant:
 
 ```php
-define('PANZA_UPTIME_MONITOR_GITHUB_TOKEN', 'github_pat_...');
+define('atx_UPTIME_MONITOR_GITHUB_TOKEN', 'github_pat_...');
 ```
 
 The updater must send:
@@ -120,7 +120,7 @@ Before publishing a release:
 
 1. Commit the plugin changes.
 2. Push to `main`.
-3. Let `.github/workflows/release-panza-plugin.yml` create the next patch tag, build the ZIP, and upload it.
+3. Let `.github/workflows/release-atx-plugin.yml` create the next patch tag, build the ZIP, and upload it.
 4. Test from a WordPress site by going to:
    `Dashboard -> Updates`
 
@@ -128,7 +128,7 @@ Example:
 
 ```bash
 git add .
-git commit -m "Update Panza Uptime Monitor plugin"
+git commit -m "Update atx Uptime Monitor plugin"
 git push origin main
 ```
 
