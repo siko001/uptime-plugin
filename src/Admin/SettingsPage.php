@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Atx\UptimeMonitor\Admin;
+namespace ATX\UptimeMonitor\Admin;
 
-use Atx\UptimeMonitor\Http\WebhookClient;
-use Atx\UptimeMonitor\Support\GitHubPluginUpdater;
-use Atx\UptimeMonitor\Support\Options;
+use ATX\UptimeMonitor\Http\WebhookClient;
+use ATX\UptimeMonitor\Support\GitHubPluginUpdater;
+use ATX\UptimeMonitor\Support\Options;
 
 final class SettingsPage
 {
