@@ -33,7 +33,7 @@ final class SettingsPage
         add_action('admin_post_' . self::CHECK_POST_ACTION, [$this, 'handleCheckUpdatesPost']);
         add_action('wp_ajax_' . self::TEST_ACTION, [$this, 'handleTest']);
         add_action('wp_ajax_' . self::CHECK_ACTION, [$this, 'handleCheckUpdates']);
-        add_filter('plugin_action_links_' . plugin_basename(ATX_UPTIME_MONITOR_FILE), [$this, 'pluginActionLinks']);
+        // add_filter('plugin_action_links_' . plugin_basename(ATX_UPTIME_MONITOR_FILE), [$this, 'pluginActionLinks']);
         add_action('admin_notices', [$this, 'showUpdateCheckNotice']);
     }
 
