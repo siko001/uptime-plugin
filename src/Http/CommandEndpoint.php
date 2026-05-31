@@ -65,6 +65,7 @@ final class CommandEndpoint
         $result = match ($command) {
             'install_plugin' => $this->installPlugin($payload),
             'update_plugin' => $this->updatePlugin((string) ($payload['slug'] ?? '')),
+            'activate_plugin' => $this->activatePlugin((string) ($payload['slug'] ?? '')),
             'deactivate_plugin' => $this->deactivatePlugin((string) ($payload['slug'] ?? '')),
             'delete_plugin' => $this->deletePlugin((string) ($payload['slug'] ?? '')),
             'update_all_plugins' => $this->updateAllPlugins(),
@@ -84,6 +85,7 @@ final class CommandEndpoint
         if (($result['ok'] ?? false) === true && in_array($command, [
             'install_plugin',
             'update_plugin',
+            'activate_plugin',
             'deactivate_plugin',
             'delete_plugin',
             'update_all_plugins',
@@ -230,6 +232,25 @@ final class CommandEndpoint
         deactivate_plugins([$plugin], true);
 
         return ['ok' => true, 'message' => "Plugin {$slug} deactivated."];
+    }
+
+    private function activatePlugin(string $slug): array
+    {
+        $plugin = $this->resolvePluginFile($slug);
+        if ($plugin === null) {
+            return ['ok' => false, 'message' => "Plugin not found for slug {$slug}."];
+        }
+
+        if (! function_exists('activate_plugin')) {
+            require_once ABSPATH.'wp-admin/includes/plugin.php';
+        }
+
+        $activation = activate_plugin($plugin, '', false, true);
+        if (is_wp_error($activation)) {
+            return ['ok' => false, 'message' => $activation->get_error_message()];
+        }
+
+        return ['ok' => true, 'message' => "Plugin {$slug} activated."];
     }
 
     private function updateAllPlugins(): array
