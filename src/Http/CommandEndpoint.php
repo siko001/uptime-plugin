@@ -64,12 +64,12 @@ final class CommandEndpoint
 
         $result = match ($command) {
             'install_plugin' => $this->installPlugin($payload),
-            'update_plugin' => $this->updatePlugin((string) ($payload['slug'] ?? '')),
+            'update_plugin' => $this->updatePlugin($payload),
             'activate_plugin' => $this->activatePlugin((string) ($payload['slug'] ?? '')),
             'deactivate_plugin' => $this->deactivatePlugin((string) ($payload['slug'] ?? '')),
             'delete_plugin' => $this->deletePlugin((string) ($payload['slug'] ?? '')),
             'update_all_plugins' => $this->updateAllPlugins(),
-            'update_theme' => $this->updateTheme((string) ($payload['slug'] ?? '')),
+            'update_theme' => $this->updateTheme($payload),
             'delete_theme' => $this->deleteTheme((string) ($payload['slug'] ?? '')),
             'update_all_themes' => $this->updateAllThemes(),
             'update_core' => $this->updateCore(false),
@@ -109,15 +109,38 @@ final class CommandEndpoint
         return new WP_REST_Response($result, ($result['ok'] ?? false) ? 200 : 422);
     }
 
-    private function updatePlugin(string $slug): array
+    private function updatePlugin(array|string $payload): array
     {
+        $slug = is_array($payload) ? (string) ($payload['slug'] ?? '') : $payload;
+        $targetVersion = is_array($payload) ? trim((string) ($payload['available_version'] ?? '')) : '';
         $plugin = $this->resolvePluginFile($slug);
         if ($plugin === null) {
             return ['ok' => false, 'message' => "Plugin not found for slug {$slug}."];
         }
 
         $this->loadUpgradeFiles();
+        $this->refreshPluginUpdates();
+
+        $updates = get_plugin_updates();
+        if (! isset($updates[$plugin])) {
+            $installedVersion = $this->pluginVersion($plugin);
+
+            if ($this->versionSatisfiesTarget($installedVersion, $targetVersion)) {
+                return ['ok' => true, 'message' => "Plugin {$slug} is already at {$installedVersion}."];
+            }
+
+            return ['ok' => false, 'message' => "No WordPress update is currently available for plugin {$slug}."];
+        }
+
         $result = (new \Plugin_Upgrader(new \Automatic_Upgrader_Skin()))->upgrade($plugin);
+
+        if ($result === false || $result === null) {
+            $installedVersion = $this->pluginVersion($plugin);
+
+            if ($this->versionSatisfiesTarget($installedVersion, $targetVersion)) {
+                return ['ok' => true, 'message' => "Plugin {$slug} is already at {$installedVersion}."];
+            }
+        }
 
         return $this->upgradeResult($result, "Plugin {$slug} updated.");
     }
@@ -269,10 +292,34 @@ final class CommandEndpoint
         return $this->upgradeResult($result, 'Plugin updates completed.', ['count' => count($plugins)]);
     }
 
-    private function updateTheme(string $slug): array
+    private function updateTheme(array|string $payload): array
     {
+        $slug = is_array($payload) ? (string) ($payload['slug'] ?? '') : $payload;
+        $targetVersion = is_array($payload) ? trim((string) ($payload['available_version'] ?? '')) : '';
+
         $this->loadUpgradeFiles();
+        $this->refreshThemeUpdates();
+
+        $updates = get_theme_updates();
+        if (! isset($updates[$slug])) {
+            $installedVersion = $this->themeVersion($slug);
+
+            if ($this->versionSatisfiesTarget($installedVersion, $targetVersion)) {
+                return ['ok' => true, 'message' => "Theme {$slug} is already at {$installedVersion}."];
+            }
+
+            return ['ok' => false, 'message' => "No WordPress update is currently available for theme {$slug}."];
+        }
+
         $result = (new \Theme_Upgrader(new \Automatic_Upgrader_Skin()))->upgrade($slug);
+
+        if ($result === false || $result === null) {
+            $installedVersion = $this->themeVersion($slug);
+
+            if ($this->versionSatisfiesTarget($installedVersion, $targetVersion)) {
+                return ['ok' => true, 'message' => "Theme {$slug} is already at {$installedVersion}."];
+            }
+        }
 
         return $this->upgradeResult($result, "Theme {$slug} updated.");
     }
@@ -524,6 +571,58 @@ final class CommandEndpoint
         }
 
         return null;
+    }
+
+    private function refreshPluginUpdates(): void
+    {
+        if (function_exists('wp_clean_plugins_cache')) {
+            wp_clean_plugins_cache(true);
+        } else {
+            delete_site_transient('update_plugins');
+        }
+
+        wp_update_plugins();
+    }
+
+    private function refreshThemeUpdates(): void
+    {
+        if (function_exists('wp_clean_themes_cache')) {
+            wp_clean_themes_cache(true);
+        } else {
+            delete_site_transient('update_themes');
+        }
+
+        wp_update_themes();
+    }
+
+    private function pluginVersion(string $pluginFile): string
+    {
+        if (! function_exists('get_plugin_data')) {
+            require_once ABSPATH.'wp-admin/includes/plugin.php';
+        }
+
+        $path = WP_PLUGIN_DIR.'/'.$pluginFile;
+        if (! is_file($path)) {
+            return '';
+        }
+
+        $data = get_plugin_data($path, false, false);
+
+        return (string) ($data['Version'] ?? '');
+    }
+
+    private function themeVersion(string $slug): string
+    {
+        $theme = wp_get_theme($slug);
+
+        return $theme->exists() ? (string) $theme->get('Version') : '';
+    }
+
+    private function versionSatisfiesTarget(string $installedVersion, string $targetVersion): bool
+    {
+        return $installedVersion !== ''
+            && $targetVersion !== ''
+            && version_compare($installedVersion, $targetVersion, '>=');
     }
 
     private function loadUpgradeFiles(): void
