@@ -113,9 +113,15 @@ final class CommandEndpoint
     {
         $slug = is_array($payload) ? (string) ($payload['slug'] ?? '') : $payload;
         $targetVersion = is_array($payload) ? trim((string) ($payload['available_version'] ?? '')) : '';
+        $activateAfterUpdate = is_array($payload) && ! empty($payload['activate_after_update']);
         $plugin = $this->resolvePluginFile($slug);
         if ($plugin === null) {
             return ['ok' => false, 'message' => "Plugin not found for slug {$slug}."];
+        }
+
+        $activationState = $this->pluginActivationState($plugin);
+        if ($activationState === null && $activateAfterUpdate) {
+            $activationState = 'site';
         }
 
         $this->loadUpgradeFiles();
@@ -138,8 +144,18 @@ final class CommandEndpoint
             $installedVersion = $this->pluginVersion($plugin);
 
             if ($this->versionSatisfiesTarget($installedVersion, $targetVersion)) {
+                $reactivationError = $this->restorePluginActivation($plugin, $slug, $activationState);
+                if ($reactivationError !== null) {
+                    return $reactivationError;
+                }
+
                 return ['ok' => true, 'message' => "Plugin {$slug} is already at {$installedVersion}."];
             }
+        }
+
+        $reactivationError = $this->restorePluginActivation($plugin, $slug, $activationState);
+        if ($reactivationError !== null) {
+            return $reactivationError;
         }
 
         return $this->upgradeResult($result, "Plugin {$slug} updated.");
@@ -609,6 +625,46 @@ final class CommandEndpoint
         $data = get_plugin_data($path, false, false);
 
         return (string) ($data['Version'] ?? '');
+    }
+
+    private function pluginActivationState(string $pluginFile): ?string
+    {
+        if (! function_exists('is_plugin_active')) {
+            require_once ABSPATH.'wp-admin/includes/plugin.php';
+        }
+
+        if (function_exists('is_plugin_active_for_network') && is_plugin_active_for_network($pluginFile)) {
+            return 'network';
+        }
+
+        return is_plugin_active($pluginFile) ? 'site' : null;
+    }
+
+    /**
+     * @return null|array{ok: false, message: string}
+     */
+    private function restorePluginActivation(string $pluginFile, string $slug, ?string $activationState): ?array
+    {
+        if ($activationState === null || $this->pluginActivationState($pluginFile) !== null) {
+            return null;
+        }
+
+        $activation = activate_plugin($pluginFile, '', $activationState === 'network', true);
+        if (is_wp_error($activation)) {
+            return [
+                'ok' => false,
+                'message' => "Plugin {$slug} updated, but WordPress could not reactivate it: ".$activation->get_error_message(),
+            ];
+        }
+
+        if ($this->pluginActivationState($pluginFile) === null) {
+            return [
+                'ok' => false,
+                'message' => "Plugin {$slug} updated, but WordPress left it inactive.",
+            ];
+        }
+
+        return null;
     }
 
     private function themeVersion(string $slug): string

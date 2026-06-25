@@ -10,6 +10,8 @@ final class InventoryReporter
 {
     public const CRON_HOOK = 'atx_uptime_monitor_push_inventory';
 
+    private bool $upgradeInProgress = false;
+
     public function __construct(private readonly WebhookClient $client)
     {
     }
@@ -18,10 +20,11 @@ final class InventoryReporter
     {
         add_action(self::CRON_HOOK, [$this, 'push']);
 
-        add_action('activated_plugin', [$this, 'push']);
-        add_action('deactivated_plugin', [$this, 'push']);
+        add_filter('upgrader_pre_install', [$this, 'markUpgradeInProgress'], 1, 2);
+        add_action('activated_plugin', [$this, 'pushUnlessUpgradeInProgress'], 10, 0);
+        add_action('deactivated_plugin', [$this, 'pushUnlessUpgradeInProgress'], 10, 0);
         add_action('deleted_plugin', [$this, 'push']);
-        add_action('upgrader_process_complete', [$this, 'push']);
+        add_action('upgrader_process_complete', [$this, 'pushAfterUpgrade'], 100, 2);
 
         if (! wp_next_scheduled(self::CRON_HOOK)) {
             wp_schedule_event(time() + 60, 'daily', self::CRON_HOOK);
@@ -39,6 +42,30 @@ final class InventoryReporter
     public function push(): void
     {
         $this->client->sendInventory($this->collect());
+    }
+
+    public function markUpgradeInProgress(mixed $return, array $hookExtra): mixed
+    {
+        if (in_array($hookExtra['type'] ?? null, ['plugin', 'theme', 'core'], true)) {
+            $this->upgradeInProgress = true;
+        }
+
+        return $return;
+    }
+
+    public function pushUnlessUpgradeInProgress(): void
+    {
+        if ($this->upgradeInProgress) {
+            return;
+        }
+
+        $this->push();
+    }
+
+    public function pushAfterUpgrade(mixed $upgrader = null, array $hookExtra = []): void
+    {
+        $this->push();
+        $this->upgradeInProgress = false;
     }
 
     /**
@@ -69,7 +96,7 @@ final class InventoryReporter
                 'update_available' => $updateAvailable,
                 'available_version' => $updateAvailable ? $availableVersion : '',
                 'type'    => 'plugin',
-                'active'  => isset($activeMap[$pluginFile]),
+                'active'  => isset($activeMap[$pluginFile]) || $this->isNetworkActivePlugin((string) $pluginFile),
             ];
         }
 
@@ -174,5 +201,11 @@ final class InventoryReporter
         return $availableVersion !== ''
             && $installedVersion !== ''
             && version_compare($availableVersion, $installedVersion, '>');
+    }
+
+    private function isNetworkActivePlugin(string $pluginFile): bool
+    {
+        return function_exists('is_plugin_active_for_network')
+            && is_plugin_active_for_network($pluginFile);
     }
 }
